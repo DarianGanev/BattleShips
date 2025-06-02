@@ -8,7 +8,6 @@ void init_player(Player* player, const char* name) {
     player->ship_count = 0;
     player->ships_remaining = MAX_SHIPS;
     
-    // Инициализиране на дъските
     for(int i = 0; i < BOARD_SIZE; i++) {
         for(int j = 0; j < BOARD_SIZE; j++) {
             player->board[i][j] = EMPTY;
@@ -16,7 +15,6 @@ void init_player(Player* player, const char* name) {
         }
     }
     
-    // Инициализиране на корабите
     for(int i = 0; i < MAX_SHIPS; i++) {
         player->ships[i].hits = 0;
         player->ships[i].is_sunk = 0;
@@ -30,14 +28,12 @@ void init_game(Game* game) {
 }
 
 int is_valid_position(Player* player, int row, int col, ShipType length, Direction direction) {
-    // Проверка дали корабът е в границите на дъската
     if(direction == HORIZONTAL) {
         if(col + length > BOARD_SIZE) return 0;
     } else {
         if(row + length > BOARD_SIZE) return 0;
     }
     
-    // Проверка дали има свободно място
     for(int i = 0; i < length; i++) {
         int check_row = (direction == VERTICAL) ? row + i : row;
         int check_col = (direction == HORIZONTAL) ? col + i : col;
@@ -47,7 +43,6 @@ int is_valid_position(Player* player, int row, int col, ShipType length, Directi
         }
     }
     
-    // Проверка дали няма съседни кораби (включително диагонално)
     for(int i = -1; i <= length; i++) {
         for(int j = -1; j <= 1; j++) {
             int check_row = (direction == VERTICAL) ? row + i : row + j;
@@ -70,7 +65,6 @@ int place_ship(Player* player, int row, int col, ShipType length, Direction dire
         return 0;
     }
     
-    // Поставяне на кораба
     Ship* ship = &player->ships[player->ship_count];
     ship->row = row;
     ship->col = col;
@@ -79,7 +73,6 @@ int place_ship(Player* player, int row, int col, ShipType length, Direction dire
     ship->hits = 0;
     ship->is_sunk = 0;
     
-    // Маркиране на клетките на дъската
     for(int i = 0; i < length; i++) {
         int ship_row = (direction == VERTICAL) ? row + i : row;
         int ship_col = (direction == HORIZONTAL) ? col + i : col;

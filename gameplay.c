@@ -4,8 +4,7 @@
 
 void setup_ships_manual(Player* player) {
     printf("\n=== SHIP PLACEMENT FOR %s ===\n", player->name);
-      // Ship counts by type
-    int ship_types[] = {2, 2, 2, 2, 3, 3, 3, 4, 4, 6}; // 4 small, 3 medium, 2 large, 1 cruiser
+    int ship_types[] = {2, 2, 2, 2, 3, 3, 3, 4, 4, 6}; 
     const char* ship_names[] = {"small", "small", "small", "small", 
                                "medium", "medium", "medium", 
                                "large", "large", "cruiser"};
@@ -26,7 +25,7 @@ void setup_ships_manual(Player* player) {
             scanf(" %c%d", &col_char, &row);
             
             int col = get_column_number(col_char);
-            row--; // Convert from 1-based to 0-based
+            row--;
             
             if(row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
                 printf("Invalid position! Please try again.\n");
@@ -52,25 +51,23 @@ void setup_ships_manual(Player* player) {
     printf("\nAll ships placed!\n");
     print_board(player->board, 1);
     printf("Press Enter to continue...");
-    getchar(); // Clear buffer
-    getchar(); // Wait for Enter
+    getchar();
+    getchar();
 }
 
 int make_attack(Player* attacker, Player* defender, int row, int col) {
     if(row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
-        return -1; // Invalid position
+        return -1;
     }
     
     if(attacker->attack_board[row][col] != EMPTY) {
-        return -1; // Already attacked
+        return -1;
     }
-    
+
     if(defender->board[row][col] == SHIP) {
-        // Hit
         defender->board[row][col] = HIT;
         attacker->attack_board[row][col] = HIT;
         
-        // Check if ship is sunk
         for(int i = 0; i < defender->ship_count; i++) {
             Ship* ship = &defender->ships[i];
             if(ship->is_sunk) continue;
@@ -91,15 +88,14 @@ int make_attack(Player* attacker, Player* defender, int row, int col) {
                 ship->is_sunk = 1;
                 defender->ships_remaining--;
                 printf("Ship sunk!\n");
-                return 2; // Ship sunk
+                return 2;
             }
         }
         
-        return 1; // Hit
+        return 1;
     } else {
-        // Miss
         attacker->attack_board[row][col] = MISS;
-        return 0; // Miss
+        return 0;
     }
 }
 
@@ -115,13 +111,11 @@ void start_multiplayer_game() {
     scanf("%s", game.player2.name);
     init_player(&game.player2, game.player2.name);
     
-    // Ship placement
     setup_ships_manual(&game.player1);
     clear_screen();
     setup_ships_manual(&game.player2);
     clear_screen();
     
-    // Main game loop
     while(!game.game_over) {
         Player* current = (game.current_player == 0) ? &game.player1 : &game.player2;
         Player* opponent = (game.current_player == 0) ? &game.player2 : &game.player1;
@@ -136,20 +130,20 @@ void start_multiplayer_game() {
         scanf(" %c%d", &col_char, &row);
         
         int col = get_column_number(col_char);
-        row--; // Convert from 1-based to 0-based
+        row--;
         
         int result = make_attack(current, opponent, row, col);
         
         switch(result) {
             case -1:
                 printf("Invalid attack! Try again.\n");
-                continue; // Don't change player
+                continue;
             case 0:
                 printf("Miss!\n");
                 break;
             case 1:
                 printf("Hit!\n");
-                continue; // Player continues
+                continue;
             case 2:
                 printf("Hit and sink!\n");
                 if(opponent->ships_remaining == 0) {
@@ -157,10 +151,9 @@ void start_multiplayer_game() {
                     game.winner = game.current_player;
                     printf("\n=== %s WINS! ===\n", current->name);
                 }
-                continue; // Player continues
+                continue;
         }
         
-        // Change player
         game.current_player = 1 - game.current_player;
         
         printf("Press Enter to continue...");
