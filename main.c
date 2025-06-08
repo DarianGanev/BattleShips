@@ -25,9 +25,25 @@ int main() {
         case 2:
             start_singleplayer_game();
             break;
-        case 3:
-            printf("Load game functionality not yet implemented.\n");
+        case 3: {
+            char filename[256];
+            char password[64];
+            printf("Enter filename to load (e.g. save1.dat): ");
+            scanf("%255s", filename);
+            printf("Enter password: ");
+            scanf("%63s", password);
+            Game loaded_game;
+            if (load_game_with_password(&loaded_game, filename, password)) {
+                preview_game(&loaded_game);
+            } else {
+                printf("Failed to load or decrypt the game.\n");
+            }
+            printf("\nPress Enter to return to main menu...");
+            while(getchar() != '\n');
+            getchar();
+            clear_input_buffer();
             break;
+        }
         case 4:
             printf("Goodbye!\n");
             break;

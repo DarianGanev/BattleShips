@@ -405,6 +405,28 @@ void start_multiplayer_game(void) {
                             game.game_over = 1;
                             game.winner = game.current_player;
                             printf("\n=== %s WINS! ===\n", current->name);
+                            // Prompt to save the game after win
+                            char save_choice;
+                            printf("\nWould you like to save this game? (y/n): ");
+                            while (1) {
+                                if (scanf(" %c", &save_choice) == 1 && (save_choice == 'y' || save_choice == 'n')) break;
+                                printf("Please enter 'y' or 'n': ");
+                                clear_input_buffer();
+                            }
+                            if (save_choice == 'y') {
+                                char filename[256];
+                                char password[64];
+                                printf("Enter filename to save (e.g. save1.dat): ");
+                                scanf("%255s", filename);
+                                printf("Enter password for encryption: ");
+                                scanf("%63s", password);
+                                save_game_with_password(&game, filename, password);
+                            }
+                            printf("\nPress Enter to return to main menu...");
+                            while(getchar() != '\n');
+                            getchar();
+                            clear_input_buffer();
+                            return;
                         }
                         continue;
                 }
@@ -482,6 +504,28 @@ void start_multiplayer_game(void) {
                             game.game_over = 1;
                             game.winner = game.current_player;
                             printf("\n=== %s WINS! ===\n", current->name);
+                            // Prompt to save the game after win
+                            char save_choice;
+                            printf("\nWould you like to save this game? (y/n): ");
+                            while (1) {
+                                if (scanf(" %c", &save_choice) == 1 && (save_choice == 'y' || save_choice == 'n')) break;
+                                printf("Please enter 'y' or 'n': ");
+                                clear_input_buffer();
+                            }
+                            if (save_choice == 'y') {
+                                char filename[256];
+                                char password[64];
+                                printf("Enter filename to save (e.g. save1.dat): ");
+                                scanf("%255s", filename);
+                                printf("Enter password for encryption: ");
+                                scanf("%63s", password);
+                                save_game_with_password(&game, filename, password);
+                            }
+                            printf("\nPress Enter to return to main menu...");
+                            while(getchar() != '\n');
+                            getchar();
+                            clear_input_buffer();
+                            return;
                         }
                         continue;
                 }
@@ -570,14 +614,30 @@ void start_singleplayer_game(void) {
     } else {
         printf("AI wins! Better luck next time!\n");
     }
-    
     printf("\nFinal boards:\n");
     printf("Your board:\n");
     print_board(game.player1.board, 1);
     printf("\nAI's board:\n");
     print_board(game.player2.board, 1);
-    
+    // Prompt to save the game
+    char save_choice;
+    printf("\nWould you like to save this game? (y/n): ");
+    while (1) {
+        if (scanf(" %c", &save_choice) == 1 && (save_choice == 'y' || save_choice == 'n')) break;
+        printf("Please enter 'y' or 'n': ");
+        clear_input_buffer();
+    }
+    if (save_choice == 'y') {
+        char filename[256];
+        char password[64];
+        printf("Enter filename to save (e.g. save1.dat): ");
+        scanf("%255s", filename);
+        printf("Enter password for encryption: ");
+        scanf("%63s", password);
+        save_game_with_password(&game, filename, password);
+    }
     printf("\nPress Enter to return to main menu...");
+    while(getchar() != '\n');
     getchar();
     clear_input_buffer();
 }

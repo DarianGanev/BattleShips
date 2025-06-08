@@ -84,6 +84,9 @@ void ai_place_ships(Player* player);
 int ai_make_attack(Player* attacker, Player* defender, Game* game);
 int save_game(Game* game, const char* filename);
 int load_game(Game* game, const char* filename);
+int save_game_with_password(Game* game, const char* filename, const char* password);
+int load_game_with_password(Game* game, const char* filename, const char* password);
 void simple_encrypt_decrypt(char* data, int length, const char* key);
+void preview_game(const Game* game);
 
 #endif
