@@ -165,39 +165,13 @@ void ai_place_ships(Player* player) {
 }
 
 int ai_make_attack(Player* attacker, Player* defender, Game* game) {
-    static int hunt_mode = 0;
-    static int hunt_row = -1, hunt_col = -1;
-    static int hunt_direction = 0;
-    
     int row, col;
     
-    if (hunt_mode && hunt_row >= 0 && hunt_col >= 0) {
-        int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        int found_target = 0;
-        
-        for (int i = 0; i < 4 && !found_target; i++) {
-            int try_dir = (hunt_direction + i) % 4;
-            row = hunt_row + directions[try_dir][0];
-            col = hunt_col + directions[try_dir][1];
-            
-            if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE &&
-                attacker->attack_board[row][col] == EMPTY) {
-                found_target = 1;
-                hunt_direction = try_dir;
-            }
-        }
-        
-        if (!found_target) {
-            hunt_mode = 0;
-        }
-    }
-    
-    if (!hunt_mode) {
-        do {
-            row = rand() % BOARD_SIZE;
-            col = rand() % BOARD_SIZE;
-        } while (attacker->attack_board[row][col] != EMPTY);
-    }
+    // Simple random attack - just find an empty spot
+    do {
+        row = rand() % BOARD_SIZE;
+        col = rand() % BOARD_SIZE;
+    } while (attacker->attack_board[row][col] != EMPTY);
     
     int result = make_attack(attacker, defender, row, col);
     
@@ -206,21 +180,12 @@ int ai_make_attack(Player* attacker, Player* defender, Game* game) {
     switch (result) {
         case 0:
             printf("Miss!\n");
-            hunt_mode = 0;
             break;
         case 1:
             printf("Hit!\n");
-            hunt_mode = 1;
-            hunt_row = row;
-            hunt_col = col;
-            hunt_direction = 0;
             break;
         case 2:
             printf("Hit and sunk!\n");
-            hunt_mode = 0;
-            break;
-        default:
-            hunt_mode = 0;
             break;
     }
     

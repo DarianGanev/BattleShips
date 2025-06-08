@@ -555,17 +555,20 @@ void start_singleplayer_game(void) {
     
     // Player ship setup
     printf("=== PLAYER SHIP SETUP ===\n");
-    show_ship_setup_menu(&game.player1);
+    setup_ships_manual(&game.player1);
     
     // AI ship setup
+    clear_screen();
     printf("\n=== AI SHIP SETUP ===\n");
     ai_place_ships(&game.player2);
     
     printf("\nPress Enter to start the battle...");
+    while(getchar() != '\n');
     getchar();
-    clear_input_buffer();
     
-    // Game loop
+    // Game loop - Player always goes first
+    game.current_player = 0;
+    
     while(!game.game_over) {
         clear_screen();
         
@@ -577,32 +580,120 @@ void start_singleplayer_game(void) {
             printf("\nYour board:\n");
             print_board(game.player1.board, 1);
             
-            show_attack_menu(&game.player1, &game.player2, &game);
+            // Player keeps attacking until miss
+            int player_continues = 1;
+            while(player_continues && !game.game_over) {
+                char col_char;
+                int row;
+                
+                printf("\nEnter attack position (e.g. A1): ");
+                while (1) {
+                    if (scanf(" %c%d", &col_char, &row) == 2) {
+                        break;
+                    } else {
+                        printf("Invalid input format! Please try again: ");
+                        clear_input_buffer();
+                    }
+                }
+                
+                int col = get_column_number(col_char);
+                row--;
+                
+                int result = make_attack(&game.player1, &game.player2, row, col);
+                
+                switch(result) {
+                    case -1:
+                        printf("Invalid attack! Try again.\n");
+                        continue; // Ask for input again
+                    case 0:
+                        printf("Miss!\n");
+                        player_continues = 0; // Player's turn ends
+                        break;
+                    case 1:
+                        printf("Hit!\n");
+                        // Player continues
+                        break;
+                    case 2:
+                        printf("Hit and sunk!\n");
+                        if(game.player2.ships_remaining == 0) {
+                            game.game_over = 1;
+                            game.winner = 0;
+                            printf("\n=== CONGRATULATIONS! YOU WIN! ===\n");
+                        }
+                        // Player continues if game not over
+                        break;
+                }
+                
+                if(player_continues && !game.game_over) {
+                    printf("Hit! You get another turn.\n");
+                    printf("Press Enter to continue...");
+                    while(getchar() != '\n');
+                    getchar();
+                    
+                    // Show updated boards
+                    clear_screen();
+                    printf("=== YOUR TURN (CONTINUED) ===\n");
+                    printf("Your attacks:\n");
+                    print_board(game.player1.attack_board, 0);
+                    printf("\nYour board:\n");
+                    print_board(game.player1.board, 1);
+                }
+            }
+            
+            if(!game.game_over) {
+                game.current_player = 1; // Switch to AI
+                printf("Press Enter to continue...");
+                while(getchar() != '\n');
+                getchar();
+            }
+            
         } else {
             // AI's turn
             printf("=== AI TURN ===\n");
             printf("AI's attacks:\n");
             print_board(game.player2.attack_board, 0);
+            printf("\nYour board:\n");
+            print_board(game.player1.board, 1);
             
-            ai_make_attack(&game.player2, &game.player1, &game);
+            // AI keeps attacking until miss
+            int ai_continues = 1;
+            while(ai_continues && !game.game_over) {
+                int result = ai_make_attack(&game.player2, &game.player1, &game);
+                
+                switch(result) {
+                    case 0:
+                        // Miss
+                        ai_continues = 0; // AI's turn ends
+                        break;
+                    case 1:
+                        // Hit - AI continues
+                        printf("AI gets another turn!\n");
+                        break;
+                    case 2:
+                        // Hit and sunk
+                        if(game.player1.ships_remaining == 0) {
+                            game.game_over = 1;
+                            game.winner = 1;
+                            printf("\n=== AI WINS! ===\n");
+                        } else {
+                            printf("AI gets another turn!\n");
+                        }
+                        break;
+                }
+                
+                if(ai_continues && !game.game_over) {
+                    printf("Press Enter for AI's next attack...");
+                    while(getchar() != '\n');
+                    getchar();
+                }
+            }
             
-            printf("\nPress Enter to continue...");
-            getchar();
-            clear_input_buffer();
-        }
-        
-        // Check for winner
-        if(game.player1.ships_remaining == 0) {
-            game.game_over = 1;
-            game.winner = 1; // AI wins
-        } else if(game.player2.ships_remaining == 0) {
-            game.game_over = 1;
-            game.winner = 0; // Player wins
-        }
-        
-        // Switch turns
-        if(!game.game_over) {
-            game.current_player = 1 - game.current_player;
+            if(!game.game_over) {
+                game.current_player = 0; // Switch to Player
+                printf("Press Enter to continue...");
+                while(getchar() != '\n');
+                getchar();
+            }
         }
     }
     
