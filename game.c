@@ -1,4 +1,5 @@
 #include "battleships.h"
+#include <stdint.h>
 
 void init_player(Player* player, const char* name) {
     strncpy(player->name, name, sizeof(player->name) - 1);
