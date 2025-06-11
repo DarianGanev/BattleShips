@@ -167,7 +167,6 @@ void ai_place_ships(Player* player) {
 int ai_make_attack(Player* attacker, Player* defender, Game* game) {
     int row, col;
     
-    // Simple random attack - just find an empty spot
     do {
         row = rand() % BOARD_SIZE;
         col = rand() % BOARD_SIZE;
@@ -192,11 +191,53 @@ int ai_make_attack(Player* attacker, Player* defender, Game* game) {
     return result;
 }
 
-// Simple XOR encryption/decryption function
-void simple_encrypt_decrypt(char* data, int length, const char* key) {
-    int key_len = strlen(key);
-    for(int i = 0; i < length; i++) {
-        data[i] ^= key[i % key_len];
+#define XTEA_NUM_ROUNDS 32
+
+static void xtea_encrypt_block(uint32_t v[2], const uint32_t key[4]) {
+    uint32_t v0 = v[0], v1 = v[1], sum = 0, i;
+    uint32_t delta = 0x9E3779B9;
+    for (i = 0; i < XTEA_NUM_ROUNDS; i++) {
+        v0 += (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
+        sum += delta;
+        v1 += (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum>>11) & 3]);
+    }
+    v[0] = v0; v[1] = v1;
+}
+
+static void xtea_decrypt_block(uint32_t v[2], const uint32_t key[4]) {
+    uint32_t v0 = v[0], v1 = v[1], sum = 0x9E3779B9 * XTEA_NUM_ROUNDS, i;
+    uint32_t delta = 0x9E3779B9;
+    for (i = 0; i < XTEA_NUM_ROUNDS; i++) {
+        v1 -= (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum>>11) & 3]);
+        sum -= delta;
+        v0 -= (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
+    }
+    v[0] = v0; v[1] = v1;
+}
+
+static void password_to_xtea_key(const char* password, uint32_t key[4]) {
+    char buf[16] = {0};
+    size_t len = strlen(password);
+    if (len > 16) len = 16;
+    memcpy(buf, password, len);
+    for (int i = 0; i < 4; i++) {
+        key[i] = ((uint32_t)(unsigned char)buf[i*4]) |
+                 ((uint32_t)(unsigned char)buf[i*4+1] << 8) |
+                 ((uint32_t)(unsigned char)buf[i*4+2] << 16) |
+                 ((uint32_t)(unsigned char)buf[i*4+3] << 24);
+    }
+}
+
+void xtea_crypt_buffer(char* data, int length, const char* password, int encrypt) {
+    uint32_t key[4];
+    password_to_xtea_key(password, key);
+    int blocks = length / 8;
+    for (int i = 0; i < blocks; i++) {
+        uint32_t* v = (uint32_t*)(data + i*8);
+        if (encrypt)
+            xtea_encrypt_block(v, key);
+        else
+            xtea_decrypt_block(v, key);
     }
 }
 
@@ -207,33 +248,25 @@ int save_game(Game* game, const char* filename) {
         return 0;
     }
     
-    // Simple encryption key
-    const char* key = "BATTLESHIP2024";
-    
-    // Convert game data to string for encryption
     char buffer[4096];
     int pos = 0;
     
-    // Write game state
     pos += sprintf(buffer + pos, "GAME_DATA\n");
     pos += sprintf(buffer + pos, "current_player:%d\n", game->current_player);
     pos += sprintf(buffer + pos, "game_over:%d\n", game->game_over);
     pos += sprintf(buffer + pos, "winner:%d\n", game->winner);
     pos += sprintf(buffer + pos, "last_attack:%d,%d\n", game->last_attack_row, game->last_attack_col);
     
-    // Write player 1 data
     pos += sprintf(buffer + pos, "PLAYER1:%s\n", game->player1.name);
     pos += sprintf(buffer + pos, "ship_count:%d\n", game->player1.ship_count);
     pos += sprintf(buffer + pos, "ships_remaining:%d\n", game->player1.ships_remaining);
     
-    // Write player 1 ships
     for(int i = 0; i < game->player1.ship_count; i++) {
         Ship* ship = &game->player1.ships[i];
         pos += sprintf(buffer + pos, "ship:%d,%d,%d,%d,%d,%d\n", 
                        ship->row, ship->col, ship->length, ship->direction, ship->hits, ship->is_sunk);
     }
     
-    // Write player 1 boards
     pos += sprintf(buffer + pos, "BOARD1:\n");
     for(int i = 0; i < BOARD_SIZE; i++) {
         for(int j = 0; j < BOARD_SIZE; j++) {
@@ -280,7 +313,7 @@ int save_game(Game* game, const char* filename) {
     }
     
     // Encrypt the data
-    simple_encrypt_decrypt(buffer, pos, key);
+    xtea_crypt_buffer(buffer, pos, "BATTLESHIP2024", 1);
     
     // Write encrypted data to file
     fwrite(buffer, 1, pos, file);
@@ -297,22 +330,17 @@ int load_game(Game* game, const char* filename) {
         return 0;
     }
     
-    // Get file size
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
     fseek(file, 0, SEEK_SET);
     
-    // Read encrypted data
     char buffer[4096];
     fread(buffer, 1, file_size, file);
     fclose(file);
     
-    // Decrypt the data
-    const char* key = "BATTLESHIP2024";
-    simple_encrypt_decrypt(buffer, file_size, key);
+    xtea_crypt_buffer(buffer, file_size, "BATTLESHIP2024", 0);
     buffer[file_size] = '\0';
     
-    // Parse the decrypted data
     char* line = strtok(buffer, "\n");
     int reading_board1 = 0, reading_attack1 = 0, reading_board2 = 0, reading_attack2 = 0;
     int board_row = 0;
@@ -369,7 +397,6 @@ int load_game(Game* game, const char* filename) {
             }
             board_row++;
         }
-        // Note: Ship data parsing omitted for brevity - would need additional parsing logic
         
         line = strtok(NULL, "\n");
     }
@@ -447,8 +474,10 @@ int save_game_with_password(Game* game, const char* filename, const char* passwo
         }
         pos += sprintf(buffer + pos, "\n");
     }
-    simple_encrypt_decrypt(buffer, pos, password);
-    fwrite(buffer, 1, pos, file);
+    int padded_len = ((pos + 7) / 8) * 8;
+    for (int i = pos; i < padded_len; i++) buffer[i] = 0;
+    xtea_crypt_buffer(buffer, padded_len, password, 1);
+    fwrite(buffer, 1, padded_len, file);
     fclose(file);
     printf("Game saved successfully to '%s'\n", filename);
     return 1;
@@ -466,7 +495,7 @@ int load_game_with_password(Game* game, const char* filename, const char* passwo
     char buffer[4096];
     fread(buffer, 1, file_size, file);
     fclose(file);
-    simple_encrypt_decrypt(buffer, file_size, password);
+    xtea_crypt_buffer(buffer, file_size, password, 0);
     buffer[file_size] = '\0';
     char* line = strtok(buffer, "\n");
     int reading_board1 = 0, reading_attack1 = 0, reading_board2 = 0, reading_attack2 = 0;

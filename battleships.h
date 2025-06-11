@@ -88,5 +88,6 @@ int save_game_with_password(Game* game, const char* filename, const char* passwo
 int load_game_with_password(Game* game, const char* filename, const char* password);
 void simple_encrypt_decrypt(char* data, int length, const char* key);
 void preview_game(const Game* game);
+void xtea_crypt_buffer(char* data, int length, const char* password, int encrypt);
 
 #endif
